@@ -10,8 +10,8 @@ Base = declarative_base()
 
 class Station(Base):
     __tablename__ = 'stations'
-    id_station = Column(Integer, primary_key=True)
-    name = Column(String(30), nullable=False)
+    id_station = Column(String(1), primary_key=True)
+    name = Column(String(30), nullable=False, unique=True)
 
     lines = relationship('Line', back_populates='station')
     controllers = relationship('Controller', back_populates='station')
@@ -24,12 +24,10 @@ class Station(Base):
 class Driver(Base):
     __tablename__ = 'drivers'
     __table_args__ = (
-            CheckConstraint('station_id IS NULL AND line_id IS NOT NULL \
-                    OR station_id IS NOT NULL OR line_id IS NULL \
-                    OR station_id IS NULL AND line_id IS NULL'),
+            CheckConstraint('NOT(station_id IS NOT NULL AND line_id IS NOT NULL)'),
             )
     id_driver = Column(Integer, primary_key=True)
-    name = Column(String(30), nullable=False)
+    name = Column(String(30), nullable=False, unique=True)
     version = Column(String(10))
     is_broken = Column(Boolean, default=False)
     is_working = Column(Boolean, default=False)
@@ -46,7 +44,7 @@ class Driver(Base):
 class ControllerType(Base):
     __tablename__ = 'controller_types'
     id_ct = Column(Integer, primary_key=True)
-    c_type = Column(String(10), nullable=False)
+    c_type = Column(String(10), nullable=False, unique=True)
 
     ctypes = relationship('Controller', back_populates='ctype')
 
@@ -57,12 +55,10 @@ class ControllerType(Base):
 class Controller(Base):
     __tablename__ = 'controllers'
     __table_args__ = (
-            CheckConstraint('station_id IS NULL AND line_id IS NOT NULL \
-                    OR station_id IS NOT NULL OR line_id IS NULL \
-                    OR station_id IS NULL AND line_id IS NULL'),
+            CheckConstraint('NOT(station_id IS NOT NULL AND line_id IS NOT NULL)'),
             )
     id_controller = Column(Integer, primary_key=True)
-    name = Column(String(30), nullable=False)
+    name = Column(String(30), nullable=False, unique=True)
     is_working = Column(Boolean, default=False)
     is_broken = Column(Boolean, default=False)
     id_ct = Column(Integer, ForeignKey('controller_types.id_ct'))
@@ -80,9 +76,8 @@ class Controller(Base):
 class Line(Base):
     __tablename__ = 'lines'
     id_line = Column(Integer, primary_key=True)
-    name = Column(Integer, nullable=False)
     line_name_id = Column(Integer, ForeignKey('line_names.id_ln'))
-    station_id = Column(Integer, ForeignKey('stations.id_station'))
+    station_id = Column(String(1), ForeignKey('stations.id_station'))
 
     measurements = relationship('Measurement', back_populates='line')
     ln = relationship('LineName', back_populates='lines')
@@ -97,9 +92,9 @@ class Line(Base):
 class LineName(Base):
     __tablename__ = 'line_names'
     id_ln = Column(Integer, primary_key=True)
-    name = Column(String(30), nullable=False)
+    name = Column(String(30), nullable=False, unique=True)
 
-    lines = relationship('Line', back_populates='line')
+    lines = relationship('Line', back_populates='ln')
 
     def __repr__(self):
         return f'<LineName: {self.name}>'
@@ -152,7 +147,7 @@ class GasMeter(Base):
 class GasMeterType(Base):
     __tablename__ = 'gasmeters_type'
     id_gm_type = Column(Integer, primary_key=True)
-    gm_type = Column(String(30), nullable=False)
+    gm_type = Column(String(30), nullable=False, unique=True)
 
     gm = relationship('GasMeter', back_populates='gm_type')
 
