@@ -43,7 +43,7 @@ ln_03 = LineName(name='NO3')
 ln_04 = LineName(name='NH4')
 
 
-session.add_all([ln_01, ln_02, ln_03, ln_04])
+session.add_all([ln_00, ln_01, ln_02, ln_03, ln_04])
 session.commit()
 
 # Insert Line
@@ -104,7 +104,7 @@ session.commit()
 
 # Insert MeasurementParameter
 
-mp_01 = MeasurementParameter(temperature=12, pressure=1010)
+mp_01 = MeasurementParameter(temperature=285, pressure=1010)
 
 session.add_all([mp_01])
 session.commit()

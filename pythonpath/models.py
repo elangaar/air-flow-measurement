@@ -86,7 +86,7 @@ class Line(Base):
     driver = relationship('Driver', back_populates='line', uselist=False)
 
     def __repr__(self):
-        return f'<Line: {self.name}, station: {self.station}>'
+        return f'{self.station.name}, {self.ln.name}'
 
 
 class LineName(Base):
