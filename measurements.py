@@ -89,3 +89,12 @@ def save_measurement_data(*args):
     session.commit()
     return
 
+def get_error_chart(*args):
+    doc = XSCRIPTCONTEXT.getDocument()
+    clean_data_range(doc.Sheets['pomocniczy'], 'G2', 'H30')
+    l_id = doc.Sheets['Wykresy']['D3'].getValue()
+    for i, m in enumerate(session.query(Measurement).filter_by(line_id=l_id).all()):
+        doc.Sheets['pomocniczy'][f'G{i+2}'].setValue(get_libre_date(m.m_datetime))
+        doc.Sheets['pomocniczy'][f'H{i+2}'].setValue(get_err(m))
+    return
+
