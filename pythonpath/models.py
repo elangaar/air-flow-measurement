@@ -1,6 +1,6 @@
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import create_engine, Column, Integer, String, Boolean, DateTime, \
-    Float, ForeignKey, CheckConstraint
+    Float, ForeignKey, CheckConstraint, Interval
 from sqlalchemy.orm import relationship
 
 engine = create_engine('sqlite:///stuff.db')
@@ -27,7 +27,7 @@ class Driver(Base):
             CheckConstraint('NOT(station_id IS NOT NULL AND line_id IS NOT NULL)'),
             )
     id_driver = Column(Integer, primary_key=True)
-    name = Column(String(30), nullable=False, unique=True)
+    serial_number = Column(String(30), nullable=False, unique=True)
     version = Column(String(10))
     is_broken = Column(Boolean, default=False)
     is_working = Column(Boolean, default=False)
@@ -38,7 +38,7 @@ class Driver(Base):
     line = relationship('Line', back_populates='driver')
 
     def __repr__(self):
-        return f'<Driver: {self.name}, version: {self.version}>'
+        return f'<Driver: {self.serial_number}, version: {self.version}>'
 
 
 class ControllerType(Base):
@@ -58,7 +58,7 @@ class Controller(Base):
             CheckConstraint('NOT(station_id IS NOT NULL AND line_id IS NOT NULL)'),
             )
     id_controller = Column(Integer, primary_key=True)
-    name = Column(String(30), nullable=False, unique=True)
+    serial_number = Column(String(30), nullable=False, unique=True)
     is_working = Column(Boolean, default=False)
     is_broken = Column(Boolean, default=False)
     id_ct = Column(Integer, ForeignKey('controller_types.id_ct'))
@@ -70,7 +70,7 @@ class Controller(Base):
     line = relationship('Line', back_populates='controller')
 
     def __repr__(self):
-        return f'<Controller: {self.name}, type: {self.c_type}>'
+        return f'<Controller: {self.serial_number}, type: {self.c_type}>'
 
 
 class Line(Base):
@@ -105,7 +105,13 @@ class Measurement(Base):
     id_measurement = Column(Integer, primary_key=True)
     m_datetime = Column(DateTime, nullable=False)
     g_value = Column(Float, nullable=False)
-    r_value = Column(Float, nullable=False)
+    c_value = Column(Float, nullable=False)
+    g_b_value = Column(Float, nullable=False)
+    g_e_value = Column(Float, nullable=False)
+    c_b_value = Column(Float, nullable=False)
+    c_e_value = Column(Float, nullable=False)
+    m_time = Column(Interval, nullable=False)
+    comments = Column(String(256))
 
     line_id = Column(Integer, ForeignKey('lines.id_line'))
     gm_id = Column(Integer, ForeignKey('gasmeters.id_gm'))
@@ -114,6 +120,7 @@ class Measurement(Base):
     line = relationship('Line', back_populates='measurements')
     gm = relationship('GasMeter', back_populates='measurements')
     mp = relationship('MeasurementParameter', back_populates='measurements')
+
 
     def __repr__(self):
         return f'<{self.id_measurement}>'
@@ -134,14 +141,14 @@ class MeasurementParameter(Base):
 class GasMeter(Base):
     __tablename__ = 'gasmeters'
     id_gm = Column(Integer, primary_key=True)
-    name = Column(String(30), nullable=False)
+    serial_number = Column(String(30), nullable=False)
     g_type = Column(Integer, ForeignKey('gasmeters_type.id_gm_type'))
 
     gm_type = relationship('GasMeterType', back_populates='gm')
     measurements = relationship('Measurement', back_populates='gm')
 
     def __repr__(self):
-        return f'<GasMeter: {self.name}>'
+        return f'<GasMeter: {self.serial_number}>'
 
 
 class GasMeterType(Base):

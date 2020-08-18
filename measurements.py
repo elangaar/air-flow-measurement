@@ -1,5 +1,5 @@
 import uno
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
@@ -39,7 +39,7 @@ def get_rt_value(m, *args):
 
 def get_err(m, *args):
     rt_value = get_rt_value(m)
-    return ((m.r_value-rt_value)/rt_value)*100
+    return ((m.c_value-rt_value)/rt_value)*100
 
 def get_lines(*args):
     lines = [(l.id_line, str(l)) for l in session.query(Line).all()]
@@ -61,7 +61,7 @@ def update_data(*args):
     gas_meters = session.query(GasMeter).all()
     for i, gm in enumerate(gas_meters):
         doc.Sheets['pomocniczy'][f'E{i+2}'].setValue(gm.id_gm)
-        doc.Sheets['pomocniczy'][f'F{i+2}'].setString(gm.name)
+        doc.Sheets['pomocniczy'][f'F{i+2}'].setString(gm.serial_number)
     lines = get_lines()
     for i, l in enumerate(lines):
         doc.Sheets['pomocniczy'][f'I{i+2}'].setString(l[1])
@@ -76,15 +76,24 @@ def save_measurement_data(*args):
     press = sheet.getCellRangeByName('C10').getValue()
     mp = MeasurementParameter(temperature=temp, pressure=press)
 
+
     line_id = doc.Sheets['pomocniczy']['K2'].getValue()
     line = session.query(Line).filter_by(id_line=line_id).one()
-    gm_name = sheet.getCellRangeByName('C6').getString()
-    gm = session.query(GasMeter).filter_by(name=gm_name).first()
+    gm_serial_number = sheet.getCellRangeByName('C6').getString()
+    gm = session.query(GasMeter).filter_by(serial_number=gm_serial_number).first()
 
     dt = datetime.now()
     gv = sheet.getCellRangeByName('C11').getValue()
-    rv = sheet.getCellRangeByName('C12').getValue()
-    meas = Measurement(m_datetime=dt, g_value=gv, r_value=rv, line=line, gm=gm, mp=mp)
+    cv = sheet.getCellRangeByName('C12').getValue()
+    g_b_value = sheet.getCellRangeByName('C21').getValue()
+    g_e_value = sheet.getCellRangeByName('C22').getValue()
+    c_b_value = sheet.getCellRangeByName('C24').getValue()
+    c_e_value = sheet.getCellRangeByName('C25').getValue()
+    mtime = sheet.getCellRangeByName('C27').getValue()
+    comments = sheet.getCellRangeByName('C35').getString()
+
+    meas = Measurement(m_datetime=dt, g_value=gv, c_value=cv, line=line, gm=gm, mp=mp, g_b_value=g_b_value, g_e_value=g_e_value, \
+                       c_b_value=c_b_value, c_e_value=c_e_value, m_time=timedelta(minutes=mtime), comments=comments)
     session.add(meas)
     session.commit()
     return

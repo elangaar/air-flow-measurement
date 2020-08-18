@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -67,7 +67,7 @@ session.commit()
 
 # Insert Driver
 
-d_01 = Driver(name='MPS10533', version='2.1.0')
+d_01 = Driver(serial_number='MPS10533', version='2.1.0')
 
 
 session.add_all([d_01])
@@ -83,7 +83,7 @@ session.commit()
 
 # Insert Controller
 
-c_01 = Controller(name='0904C3979.2fs', id_ct=5)
+c_01 = Controller(serial_number='0904C3979.2fs', id_ct=5)
 
 session.add_all([c_01])
 session.commit()
@@ -97,7 +97,7 @@ session.commit()
 
 # Insert GasMeter
 
-gm_01 = GasMeter(name='test_gas_meter_name1', g_type=1)
+gm_01 = GasMeter(serial_number='test_gas_meter_name1', g_type=1)
 
 session.add_all([gm_01])
 session.commit()
@@ -111,7 +111,9 @@ session.commit()
 
 # Insert Measurement
 
-m_01 = Measurement(m_datetime=datetime.now(), g_value=30.1, r_value=29.8, line_id=1, gm_id=1, mp_id=1)
+m_01 = Measurement(m_datetime=datetime.now(), g_value=30.1, c_value=29.8, g_b_value=3.0, g_e_value=33.1, \
+                   c_b_value=2.0, c_e_value=31.8, m_time=timedelta(minutes=10), comments='TEST', \
+                   line_id=1, gm_id=1, mp_id=1)
 
 session.add_all([m_01])
 session.commit()
