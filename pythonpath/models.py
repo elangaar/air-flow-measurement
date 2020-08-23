@@ -10,7 +10,7 @@ Base = declarative_base()
 
 class Station(Base):
     __tablename__ = 'stations'
-    id_station = Column(String(1), primary_key=True)
+    id_station = Column(Integer, primary_key=True)
     name = Column(String(30), nullable=False, unique=True)
 
     lines = relationship('Line', back_populates='station')
@@ -23,9 +23,9 @@ class Station(Base):
 
 class Driver(Base):
     __tablename__ = 'drivers'
-    __table_args__ = (
-            CheckConstraint('NOT(station_id IS NOT NULL AND line_id IS NOT NULL)'),
-            )
+    # __table_args__ = (
+    #         CheckConstraint('NOT(station_id IS NOT NULL AND line_id IS NOT NULL)'),
+    #         )
     id_driver = Column(Integer, primary_key=True)
     serial_number = Column(String(30), nullable=False, unique=True)
     version = Column(String(10))
@@ -35,7 +35,7 @@ class Driver(Base):
     line_id = Column(Integer, ForeignKey('lines.id_line'))
 
     station = relationship('Station', back_populates='drivers')
-    line = relationship('Line', back_populates='driver')
+    line = relationship('DriverLineDetail', back_populates='driver', uselist=False)
 
     def __repr__(self):
         return f'<Driver: {self.serial_number}, version: {self.version}>'
@@ -46,7 +46,7 @@ class ControllerType(Base):
     id_ct = Column(Integer, primary_key=True)
     c_type = Column(String(10), nullable=False, unique=True)
 
-    ctypes = relationship('Controller', back_populates='ctype')
+    c_types = relationship('Controller', back_populates='c_type')
 
     def __repr__(self):
         return f'<Type: {self.c_type}>'
@@ -54,36 +54,67 @@ class ControllerType(Base):
 
 class Controller(Base):
     __tablename__ = 'controllers'
-    __table_args__ = (
-            CheckConstraint('NOT(station_id IS NOT NULL AND line_id IS NOT NULL)'),
-            )
+    # __table_args__ = (
+    #         CheckConstraint('NOT(station_id IS NOT NULL AND line_id IS NOT NULL)'),
+    #         )
     id_controller = Column(Integer, primary_key=True)
     serial_number = Column(String(30), nullable=False, unique=True)
     is_working = Column(Boolean, default=False)
     is_broken = Column(Boolean, default=False)
     id_ct = Column(Integer, ForeignKey('controller_types.id_ct'))
     station_id = Column(Integer, ForeignKey('stations.id_station'))
-    line_id = Column(Integer, ForeignKey('lines.id_line'))
 
-    ctype = relationship('ControllerType', back_populates='ctypes')
+    c_type = relationship('ControllerType', back_populates='c_types')
     station = relationship('Station', back_populates='controllers')
-    line = relationship('Line', back_populates='controller')
+    line = relationship('ControllerLineDetail', back_populates='controller', uselist=False)
 
     def __repr__(self):
         return f'<Controller: {self.serial_number}, type: {self.c_type}>'
+
+
+class ControllerLineDetail(Base):
+    __tablename__ = 'controller_line_details'
+    id_cld = Column(Integer, primary_key=True)
+    controller_id = Column(Integer, ForeignKey('controllers.id_controller'))
+    line_id = Column(Integer, ForeignKey('lines.id_line'))
+
+    from_date = Column(DateTime, nullable=False)
+    to_date = Column(DateTime)
+
+    controller = relationship('Controller', back_populates='line')
+    line = relationship('Line', back_populates='controller')
+
+    def __repr__(self):
+        return f'<Controller: {self.controller_id}, line: {self.line_id}>'
+
+
+class DriverLineDetail(Base):
+    __tablename__ = 'driver_line_details'
+    id_dld = Column(Integer, primary_key=True)
+    driver_id = Column(Integer, ForeignKey('drivers.id_driver'))
+    line_id = Column(Integer, ForeignKey('lines.id_line'))
+
+    from_date = Column(DateTime, nullable=False)
+    to_date = Column(DateTime)
+
+    driver = relationship('Driver', back_populates='line')
+    line = relationship('Line', back_populates='driver')
+
+    def __repr__(self):
+        return f'<Driver: {self.driver_id}, line: {self.line_id}>'
 
 
 class Line(Base):
     __tablename__ = 'lines'
     id_line = Column(Integer, primary_key=True)
     line_name_id = Column(Integer, ForeignKey('line_names.id_ln'))
-    station_id = Column(String(1), ForeignKey('stations.id_station'))
+    station_id = Column(Integer, ForeignKey('stations.id_station'))
 
     measurements = relationship('Measurement', back_populates='line')
     ln = relationship('LineName', back_populates='lines')
     station = relationship('Station', back_populates='lines')
-    controller = relationship('Controller', back_populates='line', uselist=False)
-    driver = relationship('Driver', back_populates='line', uselist=False)
+    controller = relationship('ControllerLineDetail', back_populates='line', uselist=False)
+    driver = relationship('DriverLineDetail', back_populates='line', uselist=False)
 
     def __repr__(self):
         return f'{self.station.name}, {self.ln.name}'
