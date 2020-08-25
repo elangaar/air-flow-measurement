@@ -4,7 +4,8 @@ from datetime import datetime, timedelta
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
 
-from models import Station, Line, LineName, GasMeter, Measurement, MeasurementParameter
+from models import Station, Line, LineName, GasMeter, Measurement, MeasurementParameter, \
+    Driver, Controller
 
 DB_PATH = f'/home/elangaar/.config/libreoffice/4/user/Scripts/python/stuff.db'
 DB_STRING = f'sqlite:///{DB_PATH}'
@@ -66,6 +67,14 @@ def update_data(*args):
     for i, l in enumerate(lines):
         doc.Sheets['pomocniczy'][f'I{i+2}'].setString(l[1])
         doc.Sheets['pomocniczy'][f'J{i+2}'].setValue(l[0])
+    drivers = session.query(Driver).all()
+    for i, d in enumerate(drivers):
+        doc.Sheets['pomocniczy'][f'L{i+2}'].setString(d.serial_number)
+        doc.Sheets['pomocniczy'][f'M{i+2}'].setValue(d.id_driver)
+    controllers = session.query(Controller).all()
+    for i, c in enumerate(controllers):
+        doc.Sheets['pomocniczy'][f'P{i+2}'].setString(c.serial_number)
+        doc.Sheets['pomocniczy'][f'Q{i+2}'].setValue(c.id_controller)
     return
 
 def save_measurement_data(*args):
@@ -98,12 +107,29 @@ def save_measurement_data(*args):
     session.commit()
     return
 
-def get_error_chart(*args):
+def get_error_line_chart(*args):
     doc = XSCRIPTCONTEXT.getDocument()
-    clean_data_range(doc.Sheets['pomocniczy'], 'G2', 'H30')
-    l_id = doc.Sheets['Wykresy']['D3'].getValue()
+    clean_data_range(doc.Sheets['pomocniczy'], 'G2', 'H40')
+    l_id = doc.Sheets['Wykresy']['B10'].getValue()
     for i, m in enumerate(session.query(Measurement).filter_by(line_id=l_id).all()):
         doc.Sheets['pomocniczy'][f'G{i+2}'].setValue(get_libre_date(m.m_datetime))
         doc.Sheets['pomocniczy'][f'H{i+2}'].setValue(get_err(m))
     return
 
+def get_error_driver_chart(*args):
+    doc = XSCRIPTCONTEXT.getDocument()
+    clean_data_range(doc.Sheets['pomocniczy'], 'N2', 'O40')
+    d_id = doc.Sheets['Wykresy']['I10'].getValue()
+    for i, m in enumerate(session.query(Measurement).join(Measurement.line).join(Line.driver).filter(Driver.id_driver==d_id).all()):
+        doc.Sheets['pomocniczy'][f'N{i+2}'].setValue(get_libre_date(m.m_datetime))
+        doc.Sheets['pomocniczy'][f'O{i+2}'].setValue(get_err(m))
+    return
+
+def get_error_controller_chart(*args):
+    doc = XSCRIPTCONTEXT.getDocument()
+    clean_data_range(doc.Sheets['pomocniczy'], 'R2', 'S40')
+    c_id = doc.Sheets['Wykresy']['P10'].getValue()
+    for i, m in enumerate(session.query(Measurement).join(Measurement.line).join(Line.controller).filter(Controller.id_controller==c_id).all()):
+        doc.Sheets['pomocniczy'][f'R{i+2}'].setValue(get_libre_date(m.m_datetime))
+        doc.Sheets['pomocniczy'][f'S{i+2}'].setValue(get_err(m))
+    return
