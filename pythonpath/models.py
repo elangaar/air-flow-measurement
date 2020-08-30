@@ -1,6 +1,7 @@
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import create_engine, Column, Integer, String, Boolean, DateTime, \
-    Float, ForeignKey, CheckConstraint, Interval
+    Float, ForeignKey, Interval
+from sqlalchemy import CheckConstraint, UniqueConstraint
 from sqlalchemy.orm import relationship
 
 engine = create_engine('sqlite:///stuff.db')
@@ -11,7 +12,7 @@ Base = declarative_base()
 class Station(Base):
     __tablename__ = 'stations'
     id_station = Column(Integer, primary_key=True)
-    name = Column(String(30), nullable=False, unique=True)
+    name = Column(String(100), nullable=False, unique=True)
 
     lines = relationship('Line', back_populates='station')
     controllers = relationship('Controller', back_populates='station')
@@ -24,15 +25,19 @@ class Station(Base):
 class Driver(Base):
     __tablename__ = 'drivers'
     # __table_args__ = (
-    #         CheckConstraint('NOT(station_id IS NOT NULL AND line_id IS NOT NULL)'),
-    #         )
+    #     CheckConstraint('NOT(station_id IS NOT NULL AND line_id IS NOT NULL)', \
+    #                     name='check_not_station_and_not_line'),
+    #     # CheckConstraint('NOT(is_broken IS TRUE AND is_working IS TRUE)'),
+    #     CheckConstraint('NOT(is_broken IS TRUE AND line_id IS NOT NULL)', \
+    #                     name='check_not_broken_true_and_line_not_null')
+    # )
     id_driver = Column(Integer, primary_key=True)
-    serial_number = Column(String(30), nullable=False, unique=True)
+    serial_number = Column(String(30), unique=True, nullable=False)
     version = Column(String(10))
     is_broken = Column(Boolean, default=False)
-    is_working = Column(Boolean, default=False)
+    # is_working = Column(Boolean, default=False)
     station_id = Column(Integer, ForeignKey('stations.id_station'))
-    line_id = Column(Integer, ForeignKey('lines.id_line'))
+    # line_id = Column(Integer, ForeignKey('lines.id_line'))
 
     station = relationship('Station', back_populates='drivers')
     line = relationship('DriverLineDetail', back_populates='driver', uselist=False)
@@ -55,14 +60,18 @@ class ControllerType(Base):
 class Controller(Base):
     __tablename__ = 'controllers'
     # __table_args__ = (
-    #         CheckConstraint('NOT(station_id IS NOT NULL AND line_id IS NOT NULL)'),
-    #         )
+    #     CheckConstraint('NOT(station_id IS NOT NULL AND line_id IS NOT NULL)', \
+    #                     name='check_not_station_and_not_line'),
+    #     CheckConstraint('NOT(is_broken IS TRUE AND line_id IS NOT NULL)', \
+    #                     name='check_not_broken_true_and_line_not_null'),
+    # )
     id_controller = Column(Integer, primary_key=True)
-    serial_number = Column(String(30), nullable=False, unique=True)
+    serial_number = Column(String(30), unique=True, nullable=False)
     is_working = Column(Boolean, default=False)
     is_broken = Column(Boolean, default=False)
     id_ct = Column(Integer, ForeignKey('controller_types.id_ct'))
     station_id = Column(Integer, ForeignKey('stations.id_station'))
+    # line_id = Column(Integer, ForeignKey('lines.id_line'))
 
     c_type = relationship('ControllerType', back_populates='c_types')
     station = relationship('Station', back_populates='controllers')
@@ -74,9 +83,14 @@ class Controller(Base):
 
 class ControllerLineDetail(Base):
     __tablename__ = 'controller_line_details'
+    __table_args__ = (
+        CheckConstraint('from_date < to_date', name='check_date_from_lt_to'),
+        CheckConstraint('from_date <= CURRENT_TIMESTAMP', name='check_from_date_le_now'),
+        CheckConstraint('to_date <= CURRENT_TIMESTAMP', name='check_to_date_le_now'),
+    )
     id_cld = Column(Integer, primary_key=True)
-    controller_id = Column(Integer, ForeignKey('controllers.id_controller'))
-    line_id = Column(Integer, ForeignKey('lines.id_line'))
+    controller_id = Column(Integer, ForeignKey('controllers.id_controller'), unique=True)
+    line_id = Column(Integer, ForeignKey('lines.id_line'), unique=True)
 
     from_date = Column(DateTime, nullable=False)
     to_date = Column(DateTime)
@@ -90,9 +104,14 @@ class ControllerLineDetail(Base):
 
 class DriverLineDetail(Base):
     __tablename__ = 'driver_line_details'
+    __table_args__ = (
+        CheckConstraint('from_date < to_date', name='check_date_from_lt_to'),
+        CheckConstraint('from_date <= CURRENT_TIMESTAMP', name='check_from_date_le_now'),
+        CheckConstraint('to_date <= CURRENT_TIMESTAMP', name='check_to_date_le_now'),
+    )
     id_dld = Column(Integer, primary_key=True)
-    driver_id = Column(Integer, ForeignKey('drivers.id_driver'))
-    line_id = Column(Integer, ForeignKey('lines.id_line'))
+    driver_id = Column(Integer, ForeignKey('drivers.id_driver'), unique=True)
+    line_id = Column(Integer, ForeignKey('lines.id_line'), unique=True)
 
     from_date = Column(DateTime, nullable=False)
     to_date = Column(DateTime)
@@ -106,6 +125,9 @@ class DriverLineDetail(Base):
 
 class Line(Base):
     __tablename__ = 'lines'
+    __table_args__ = (
+        UniqueConstraint('line_name_id', 'station_id', name='unique_line_name_and_station'),
+    )
     id_line = Column(Integer, primary_key=True)
     line_name_id = Column(Integer, ForeignKey('line_names.id_ln'))
     station_id = Column(Integer, ForeignKey('stations.id_station'))
@@ -144,14 +166,13 @@ class Measurement(Base):
     m_time = Column(Interval, nullable=False)
     comments = Column(String(256))
 
-    line_id = Column(Integer, ForeignKey('lines.id_line'))
-    gm_id = Column(Integer, ForeignKey('gasmeters.id_gm'))
-    mp_id = Column(Integer, ForeignKey('measurement_parameter.id_mp'))
+    line_id = Column(Integer, ForeignKey('lines.id_line'), nullable=False)
+    gm_id = Column(Integer, ForeignKey('gasmeters.id_gm'), nullable=False)
+    mp_id = Column(Integer, ForeignKey('measurement_parameter.id_mp'), nullable=False)
 
     line = relationship('Line', back_populates='measurements')
     gm = relationship('GasMeter', back_populates='measurements')
     mp = relationship('MeasurementParameter', back_populates='measurements')
-
 
     def __repr__(self):
         return f'<{self.id_measurement}>'
@@ -172,7 +193,7 @@ class MeasurementParameter(Base):
 class GasMeter(Base):
     __tablename__ = 'gasmeters'
     id_gm = Column(Integer, primary_key=True)
-    serial_number = Column(String(30), nullable=False)
+    serial_number = Column(String(30), unique=True, nullable=False)
     g_type = Column(Integer, ForeignKey('gasmeters_type.id_gm_type'))
 
     gm_type = relationship('GasMeterType', back_populates='gm')
